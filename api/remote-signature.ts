@@ -5,11 +5,9 @@ interface SignatureRequestBody {
   signatureDataUrl?: unknown;
 }
 
-interface RuntimeGlobals {
-  process?: {
-    env?: Record<string, string | undefined>;
-  };
-}
+declare const process: {
+  env: Record<string, string | undefined>;
+};
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PNG_DATA_URL_PATTERN = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/;
@@ -46,9 +44,8 @@ export default {
       });
     }
 
-    const runtimeProcess = (globalThis as typeof globalThis & RuntimeGlobals).process;
-    const supabaseUrl = runtimeProcess?.env?.SUPABASE_URL || runtimeProcess?.env?.VITE_SUPABASE_URL;
-    const serverSecretKey = runtimeProcess?.env?.SUPABASE_SECRET_KEY || runtimeProcess?.env?.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const serverSecretKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serverSecretKey) {
       console.error('Faltan VITE_SUPABASE_URL/SUPABASE_URL o SUPABASE_SECRET_KEY en Vercel.');
