@@ -77,8 +77,15 @@ export async function getActivosTIC(): Promise<ActivoTIC[]> {
   }
 }
 
+interface CreateTicketResult {
+  success: boolean;
+  synced: boolean;
+  message: string;
+  ticket?: Ticket;
+}
+
 // Guardar Ticket de Soporte con Firma
-export async function createTicket(input: TicketFormInput): Promise<{ success: boolean; message: string; ticket?: Ticket }> {
+export async function createTicket(input: TicketFormInput): Promise<CreateTicketResult> {
   let publicSignatureUrl: string | null = null;
 
   if (input.signatureDataUrl) {
@@ -89,20 +96,25 @@ export async function createTicket(input: TicketFormInput): Promise<{ success: b
       if (isSupabaseConfigured) {
         const { error: uploadError } = await supabase.storage
           .from('firmas')
-          .upload(filename, blob, { contentType: 'image/png', upsert: true });
+          .upload(filename, blob, { contentType: 'image/png', upsert: false });
 
-        if (!uploadError) {
-          const { data: publicUrlData } = supabase.storage
-            .from('firmas')
-            .getPublicUrl(filename);
-          
-          publicSignatureUrl = publicUrlData.publicUrl;
-        }
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('firmas')
+          .getPublicUrl(filename);
+
+        publicSignatureUrl = publicUrlData.publicUrl;
       } else {
         publicSignatureUrl = input.signatureDataUrl;
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error al procesar la firma:', err);
+      return {
+        success: false,
+        synced: false,
+        message: 'No fue posible subir la firma a Supabase. El ticket no se guardó.'
+      };
     }
   }
 
@@ -118,7 +130,8 @@ export async function createTicket(input: TicketFormInput): Promise<{ success: b
     nombre_tecnico: input.nombre_tecnico,
     estado: estadoInicial,
     url_firma: publicSignatureUrl,
-    notas_adicionales: input.notas_adicionales || null
+    notas_adicionales: input.notas_adicionales || null,
+    firma_token_hash: input.firma_token_hash || null
   };
 
   if (isSupabaseConfigured && navigator.onLine) {
@@ -126,16 +139,26 @@ export async function createTicket(input: TicketFormInput): Promise<{ success: b
       const { data, error } = await supabase
         .from('tickets')
         .insert([newTicketData])
-        .select('*, usuarios(nombre, departamento), activos_tic(codigo_inventario, nombre_equipo), categorias_soporte(nombre)')
+        .select('id, fecha_registro, usuario_id, activo_id, categoria_id, descripcion_falla, nombre_tecnico, estado, url_firma, notas_adicionales, usuarios(nombre, departamento), activos_tic(codigo_inventario, nombre_equipo), categorias_soporte(nombre)')
         .single();
 
       if (error) throw error;
-      return { success: true, message: 'Ticket registrado con éxito en Supabase.', ticket: data };
-    } catch (err: any) {
+      return {
+        success: true,
+        synced: true,
+        message: 'Ticket registrado con éxito en Supabase.',
+        ticket: data as unknown as Ticket
+      };
+    } catch (err: unknown) {
       console.error('Error al insertar ticket en Supabase:', err);
       const localTicket = { id: `local-${Date.now()}`, fecha_registro: new Date().toISOString(), ...newTicketData };
       saveOfflineTicket(localTicket);
-      return { success: true, message: 'Guardado localmente.', ticket: localTicket };
+      return {
+        success: true,
+        synced: false,
+        message: 'Supabase rechazó el registro. Se conservó una copia local, pero aún no está sincronizada.',
+        ticket: localTicket
+      };
     }
   } else {
     const localTicket: Ticket = {
@@ -144,67 +167,12 @@ export async function createTicket(input: TicketFormInput): Promise<{ success: b
       ...newTicketData
     };
     saveOfflineTicket(localTicket);
-    return { success: true, message: 'Ticket registrado en modo Local.', ticket: localTicket };
-  }
-}
-
-// Actualizar firma remota enviada por el cliente desde su celular
-export async function updateRemoteSignature(ticketId: string, signatureDataUrl: string): Promise<boolean> {
-  try {
-    const blob = dataURLtoBlob(signatureDataUrl);
-    const filename = `firma_remota_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.png`;
-
-    let publicUrl = signatureDataUrl;
-
-    if (isSupabaseConfigured) {
-      const { error: uploadError } = await supabase.storage
-        .from('firmas')
-        .upload(filename, blob, { contentType: 'image/png', upsert: true });
-
-      if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage
-          .from('firmas')
-          .getPublicUrl(filename);
-        publicUrl = publicUrlData.publicUrl;
-      }
-
-      // Si ticketId es un UUID válido de Supabase
-      if (ticketId && !ticketId.startsWith('local-')) {
-        const { error: updateError } = await supabase
-          .from('tickets')
-          .update({ url_firma: publicUrl, estado: 'Atendido' })
-          .eq('id', ticketId);
-
-        if (updateError) {
-          console.error('Error al actualizar firma en Supabase:', updateError);
-        }
-      } else {
-        // Fallback: Actualizar el último ticket en estado Pendiente
-        const { data: pendingTickets } = await supabase
-          .from('tickets')
-          .select('id')
-          .eq('estado', 'Pendiente')
-          .order('fecha_registro', { ascending: false })
-          .limit(1);
-
-        if (pendingTickets && pendingTickets.length > 0) {
-          await supabase
-            .from('tickets')
-            .update({ url_firma: publicUrl, estado: 'Atendido' })
-            .eq('id', pendingTickets[0].id);
-        }
-      }
-    }
-
-    // Actualizar también localmente
-    const offline = getOfflineTickets();
-    const updated = offline.map(t => (t.id === ticketId || t.estado === 'Pendiente') ? { ...t, url_firma: publicUrl, estado: 'Atendido' as const } : t);
-    localStorage.setItem(LOCAL_STORAGE_TICKETS_KEY, JSON.stringify(updated));
-
-    return true;
-  } catch (err) {
-    console.error('Error al actualizar la firma remota:', err);
-    return false;
+    return {
+      success: true,
+      synced: false,
+      message: 'Ticket registrado en modo local; aún no está sincronizado con Supabase.',
+      ticket: localTicket
+    };
   }
 }
 
@@ -231,13 +199,13 @@ export async function getRecentTickets(): Promise<Ticket[]> {
   try {
     const { data, error } = await supabase
       .from('tickets')
-      .select('*, usuarios(nombre, departamento), activos_tic(codigo_inventario, nombre_equipo), categorias_soporte(nombre)')
+      .select('id, fecha_registro, usuario_id, activo_id, categoria_id, descripcion_falla, nombre_tecnico, estado, url_firma, notas_adicionales, usuarios(nombre, departamento), activos_tic(codigo_inventario, nombre_equipo), categorias_soporte(nombre)')
       .order('fecha_registro', { ascending: false })
       .limit(30);
 
     if (error) throw error;
     const offline = getOfflineTickets();
-    return [...offline, ...(data || [])];
+    return [...offline, ...((data || []) as unknown as Ticket[])];
   } catch (err) {
     console.warn('Error al obtener tickets recientes:', err);
     return getOfflineTickets();

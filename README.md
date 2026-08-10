@@ -30,3 +30,15 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Configuración del proyecto
+
+1. En instalaciones nuevas usa `supabase_schema.sql`; en proyectos existentes aplica, en orden, las migraciones de `supabase/migrations`.
+2. Configura en Vercel las cinco variables documentadas en `.env.example`.
+3. Aplica las variables a Production, Preview y Development según corresponda.
+4. Realiza un nuevo despliegue; las variables `VITE_*` se incorporan durante la compilación.
+
+La firma remota se procesa en `api/remote-signature.ts`. La clave
+`SUPABASE_SECRET_KEY` se usa exclusivamente en esa función del servidor y nunca
+debe copiarse a una variable que comience con `VITE_`, almacenarse en el navegador o
+subirse al repositorio.
