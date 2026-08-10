@@ -1,6 +1,7 @@
 -- ========================================================
--- SCRIPT SQL: ESQUEMA Y CONFIGURACIÓN PARA SUPABASE
+-- SCRIPT SQL COMPLETO Y VERSIONADO PARA SUPABASE
 -- Proyecto: PWA de Evidencia y Registro de Soporte TIC
+-- Repositorio: Hmhn2525/registros-tic
 -- ========================================================
 
 -- 1. CREACIÓN DE TABLAS
@@ -11,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     id_empleado TEXT UNIQUE, -- Número de empleado / nómina (ej: 5329, 4061, 399)
     nombre TEXT NOT NULL,
-    email TEXT UNIQUE,
+    email TEXT,
     departamento TEXT NOT NULL,
     ubicacion TEXT,
     estatus TEXT DEFAULT '1',
@@ -57,23 +58,28 @@ CREATE TABLE IF NOT EXISTS public.tickets (
     notas_adicionales TEXT
 );
 
--- 2. HABILITAR ROW LEVEL SECURITY (RLS) & POLÍTICAS
+-- 2. HABILITAR ROW LEVEL SECURITY (RLS) & POLÍTICAS COMPLETAS
 -- --------------------------------------------------------
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categorias_soporte ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activos_tic ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
 
--- Políticas de lectura pública/anon (para que la PWA consulte selectores)
+-- POLÍTICAS DE LECTURA (SELECT)
 CREATE POLICY "Permitir lectura publica usuarios" ON public.usuarios FOR SELECT USING (true);
 CREATE POLICY "Permitir lectura publica categorias" ON public.categorias_soporte FOR SELECT USING (true);
 CREATE POLICY "Permitir lectura publica activos" ON public.activos_tic FOR SELECT USING (true);
 CREATE POLICY "Permitir lectura publica tickets" ON public.tickets FOR SELECT USING (true);
 
--- Políticas de inserción pública/anon (para guardar tickets desde la app)
+-- POLÍTICAS DE INSERCIÓN (INSERT)
 CREATE POLICY "Permitir insercion publica tickets" ON public.tickets FOR INSERT WITH CHECK (true);
 CREATE POLICY "Permitir insercion publica usuarios" ON public.usuarios FOR INSERT WITH CHECK (true);
 CREATE POLICY "Permitir insercion publica activos" ON public.activos_tic FOR INSERT WITH CHECK (true);
+
+-- POLÍTICAS DE ACTUALIZACIÓN (UPDATE) - CRÍTICAS PARA FIRMA REMOTA
+CREATE POLICY "Permitir actualizacion publica tickets" ON public.tickets FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Permitir actualizacion publica usuarios" ON public.usuarios FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Permitir actualizacion publica activos" ON public.activos_tic FOR UPDATE USING (true) WITH CHECK (true);
 
 -- 3. CREACIÓN Y CONFIGURACIÓN DEL BUCKET DE STORAGE "firmas"
 -- --------------------------------------------------------
@@ -81,7 +87,7 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('firmas', 'firmas', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Políticas para permitir subida y lectura de firmas en Storage
+-- Políticas de Storage RLS para el Bucket "firmas"
 CREATE POLICY "Lectura publica de firmas"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'firmas');
@@ -90,7 +96,11 @@ CREATE POLICY "Subida publica de firmas"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'firmas');
 
--- 4. DATOS SEMILLA (SEED DATA DE PRUEBA)
+CREATE POLICY "Actualizacion publica de firmas"
+ON storage.objects FOR UPDATE
+USING (bucket_id = 'firmas');
+
+-- 4. DATOS SEMILLA (CATEGORÍAS DE SOPORTE)
 -- --------------------------------------------------------
 INSERT INTO public.categorias_soporte (nombre, descripcion) VALUES
 ('Hardware / Equipo', 'Fallas físicas en laptop, monitor, teclado, mouse o perifericos'),

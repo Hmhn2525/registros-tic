@@ -163,7 +163,7 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
   };
 
   const handleShareWhatsApp = (urlToShare: string) => {
-    const mensaje = `Hola ${usuarioSeleccionadoObj?.nombre || ''}, te compartimos el enlace para confirmar y firmar la atención de soporte TIC recibida:\n\n${urlToShare}`;
+    const mensaje = `Hola ${usuarioSeleccionadoObj?.nombre || ''}, te compartimos el enlace oficial para confirmar y firmar la atención de soporte TIC recibida:\n\n${urlToShare}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, '_blank');
   };
 
@@ -221,17 +221,19 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
     setSubmitting(false);
 
     if (res.success) {
-      const realTicketId = res.ticket?.id || `local-${Date.now()}`;
-      const generatedShareUrl = `${baseUrl}/?firmar_ticket=${realTicketId}&usuario=${encodeURIComponent(usuarioSeleccionadoObj?.nombre || '')}`;
+      // 1. OBTENER EL UUID REAL DEVUELTO POR SUPABASE
+      const realTicketId = res.ticket?.id;
 
-      if (modalidadFirma === 'remota_link') {
+      if (modalidadFirma === 'remota_link' && realTicketId) {
+        // 2. CONSTRUIR EL ENLACE CON EL UUID REAL DE POSTGRESQL
+        const generatedShareUrl = `${baseUrl}/?firmar_ticket=${realTicketId}&usuario=${encodeURIComponent(usuarioSeleccionadoObj?.nombre || '')}`;
         setCreatedTicketShareUrl(generatedShareUrl);
         setFeedback({ 
           type: 'success', 
-          message: '¡Ticket registrado en estado Pendiente! Haz clic en el botón de WhatsApp abajo para enviar el enlace al usuario.'
+          message: '¡Ticket registrado con éxito en Supabase (Pendiente)! Ahora envía el enlace oficial por WhatsApp.'
         });
       } else {
-        setFeedback({ type: 'success', message: 'Atención y evidencia guardada correctamente.' });
+        setFeedback({ type: 'success', message: res.message || 'Atención y evidencia guardada correctamente.' });
         setDescripcionFalla('');
         setNotasAdicionales('');
         setEspecificarOtroActivo('');
@@ -240,7 +242,8 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
         onSuccess();
       }
     } else {
-      setFeedback({ type: 'error', message: res.message || 'Ocurrió un error al guardar el registro.' });
+      // 3. MOSTRAR ERROR REAL DE SUPABASE (SIN MASCARAR)
+      setFeedback({ type: 'error', message: res.message || 'Ocurrió un error al guardar en Supabase.' });
     }
   };
 
@@ -271,30 +274,30 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
             <span className="text-sm">{feedback.message}</span>
           </div>
 
-          {/* Si se generó un ticket remoto con enlace real */}
+          {/* Si se creó exitosamente en Supabase, mostrar enlace real con UUID */}
           {createdTicketShareUrl && (
-            <div className="bg-slate-950/80 p-3.5 rounded-xl border border-emerald-500/30 space-y-2 mt-1">
-              <span className="text-[11px] font-bold text-emerald-300 block">
-                Enlace Directo para la Firma del Usuario:
+            <div className="bg-slate-950/90 p-4 rounded-xl border border-emerald-500/40 space-y-3 mt-1 shadow-inner">
+              <span className="text-xs font-bold text-emerald-300 block uppercase tracking-wider">
+                Enlace Oficial con UUID para la Firma Remota:
               </span>
-              <div className="text-xs font-mono text-indigo-300 break-all bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <div className="text-xs font-mono text-indigo-300 break-all bg-slate-900 p-2.5 rounded-lg border border-slate-800">
                 {createdTicketShareUrl}
               </div>
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => handleShareWhatsApp(createdTicketShareUrl)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                 >
-                  <Share2 className="w-4 h-4" /> Enviar por WhatsApp
+                  <Share2 className="w-4 h-4" /> Enviar Enlace Oficial por WhatsApp
                 </button>
                 <button
                   type="button"
                   onClick={() => handleCopyLink(createdTicketShareUrl)}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl flex items-center gap-2 border border-slate-700 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 border border-slate-700 cursor-pointer"
                 >
                   {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  {copiedLink ? '¡Copiado!' : 'Copiar'}
+                  {copiedLink ? '¡Enlace Copiado!' : 'Copiar Enlace'}
                 </button>
               </div>
             </div>
@@ -576,8 +579,8 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
               <div className="flex items-start gap-2.5 text-xs text-indigo-200">
                 <Share2 className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-white text-sm block">Flujo de Firma Remota</span>
-                  Presiona el botón de abajo <strong>"Guardar Ticket y Generar Enlace"</strong>. El sistema registrará el ticket como <em>Pendiente</em> y te entregará el enlace para enviárselo al usuario por WhatsApp.
+                  <span className="font-bold text-white text-sm block">1. Registra el Ticket en Supabase</span>
+                  Haz clic abajo en <strong>"Guardar Ticket en Supabase y Generar Enlace Remoto"</strong>. Supabase creará el registro con su UUID de PostgreSQL y te entregará el botón directo para WhatsApp.
                 </div>
               </div>
             </div>
@@ -622,12 +625,12 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
         {submitting ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            Guardando Registro...
+            Creando Ticket en Supabase...
           </>
         ) : (
           <>
             <Send className="w-5 h-5" />
-            {modalidadFirma === 'remota_link' ? 'Guardar Ticket y Generar Enlace Remoto' : 'Guardar Ticket y Registrar Evidencia'}
+            {modalidadFirma === 'remota_link' ? 'Guardar Ticket en Supabase y Generar Enlace Remoto' : 'Guardar Ticket y Registrar Evidencia'}
           </>
         )}
       </button>

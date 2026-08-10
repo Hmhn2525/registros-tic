@@ -91,18 +91,22 @@ export async function createTicket(input: TicketFormInput): Promise<{ success: b
           .from('firmas')
           .upload(filename, blob, { contentType: 'image/png', upsert: true });
 
-        if (!uploadError) {
-          const { data: publicUrlData } = supabase.storage
-            .from('firmas')
-            .getPublicUrl(filename);
-          
-          publicSignatureUrl = publicUrlData.publicUrl;
+        if (uploadError) {
+          console.error('Error en Supabase Storage:', uploadError);
+          return { success: false, message: `Error de almacenamiento: ${uploadError.message}` };
         }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('firmas')
+          .getPublicUrl(filename);
+        
+        publicSignatureUrl = publicUrlData.publicUrl;
       } else {
         publicSignatureUrl = input.signatureDataUrl;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error al procesar la firma:', err);
+      return { success: false, message: 'Error procesando la firma digital.' };
     }
   }
 
@@ -129,13 +133,14 @@ export async function createTicket(input: TicketFormInput): Promise<{ success: b
         .select('*, usuarios(nombre, departamento), activos_tic(codigo_inventario, nombre_equipo), categorias_soporte(nombre)')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error al crear ticket en Supabase:', error);
+        return { success: false, message: `Error en Supabase: ${error.message}` };
+      }
       return { success: true, message: 'Ticket registrado con éxito en Supabase.', ticket: data };
     } catch (err: any) {
       console.error('Error al insertar ticket en Supabase:', err);
-      const localTicket = { id: `local-${Date.now()}`, fecha_registro: new Date().toISOString(), ...newTicketData };
-      saveOfflineTicket(localTicket);
-      return { success: true, message: 'Guardado localmente.', ticket: localTicket };
+      return { success: false, message: err.message || 'Error al conectar con la base de datos.' };
     }
   } else {
     const localTicket: Ticket = {
@@ -149,7 +154,7 @@ export async function createTicket(input: TicketFormInput): Promise<{ success: b
 }
 
 // Actualizar firma remota enviada por el cliente desde su celular
-export async function updateRemoteSignature(ticketId: string, signatureDataUrl: string): Promise<boolean> {
+export async function updateRemoteSignature(ticketId: string, signatureDataUrl: string): Promise<{ success: boolean; message: string; ticket?: Ticket }> {
   try {
     const blob = dataURLtoBlob(signatureDataUrl);
     const filename = `firma_remota_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.png`;
@@ -157,61 +162,66 @@ export async function updateRemoteSignature(ticketId: string, signatureDataUrl: 
     let publicUrl = signatureDataUrl;
 
     if (isSupabaseConfigured) {
+      // 1. Subida a Storage obligatoria
       const { error: uploadError } = await supabase.storage
         .from('firmas')
         .upload(filename, blob, { contentType: 'image/png', upsert: true });
 
-      if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage
-          .from('firmas')
-          .getPublicUrl(filename);
-        publicUrl = publicUrlData.publicUrl;
+      if (uploadError) {
+        console.error('Error en Supabase Storage:', uploadError);
+        return { success: false, message: `Error al guardar la firma en Storage: ${uploadError.message}` };
       }
 
-      // Validar si ticketId es un UUID válido de PostgreSQL
+      const { data: publicUrlData } = supabase.storage
+        .from('firmas')
+        .getPublicUrl(filename);
+      
+      publicUrl = publicUrlData.publicUrl;
+
+      // 2. Validar que ticketId sea un UUID válido de PostgreSQL
       const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(ticketId);
 
-      let updatedRowsCount = 0;
+      let targetTicketId = ticketId;
 
-      if (isUUID) {
-        const { data: updatedData, error: updateError } = await supabase
-          .from('tickets')
-          .update({ url_firma: publicUrl, estado: 'Atendido' })
-          .eq('id', ticketId)
-          .select();
-
-        if (!updateError && updatedData && updatedData.length > 0) {
-          updatedRowsCount = updatedData.length;
-        }
-      }
-
-      // FALLBACK: Si no era un UUID o no se actualizó nada, buscar el ticket más reciente en estado Pendiente
-      if (updatedRowsCount === 0) {
-        const { data: pendingTickets } = await supabase
+      // Si no es UUID o fue un ID temporal local, buscar el último ticket en estado Pendiente
+      if (!isUUID) {
+        const { data: pendingTickets, error: pendErr } = await supabase
           .from('tickets')
           .select('id')
           .eq('estado', 'Pendiente')
           .order('fecha_registro', { ascending: false })
           .limit(1);
 
-        if (pendingTickets && pendingTickets.length > 0) {
-          await supabase
-            .from('tickets')
-            .update({ url_firma: publicUrl, estado: 'Atendido' })
-            .eq('id', pendingTickets[0].id);
+        if (pendErr || !pendingTickets || pendingTickets.length === 0) {
+          return { success: false, message: 'No se encontró ninguna atención pendiente por firmar.' };
         }
+        targetTicketId = pendingTickets[0].id;
       }
+
+      // 3. UPDATE estricto con .select().single() para VERIFICAR que la fila realmente cambió en Supabase
+      const { data: updatedTicket, error: updateError } = await supabase
+        .from('tickets')
+        .update({ url_firma: publicUrl, estado: 'Atendido' })
+        .eq('id', targetTicketId)
+        .select('*, usuarios(nombre, departamento), activos_tic(codigo_inventario, nombre_equipo)')
+        .single();
+
+      if (updateError || !updatedTicket) {
+        console.error('Error al actualizar ticket en Supabase:', updateError);
+        return { success: false, message: updateError ? updateError.message : 'No se pudo actualizar el registro en la base de datos.' };
+      }
+
+      return { success: true, message: 'Firma registrada y verificada en Supabase.', ticket: updatedTicket };
+    } else {
+      // Fallback local
+      const offline = getOfflineTickets();
+      const updated = offline.map(t => (t.id === ticketId || t.estado === 'Pendiente') ? { ...t, url_firma: publicUrl, estado: 'Atendido' as const } : t);
+      localStorage.setItem(LOCAL_STORAGE_TICKETS_KEY, JSON.stringify(updated));
+      return { success: true, message: 'Firma guardada en modo local.' };
     }
-
-    // Actualizar también localmente en localStorage
-    const offline = getOfflineTickets();
-    const updated = offline.map(t => (t.id === ticketId || t.estado === 'Pendiente') ? { ...t, url_firma: publicUrl, estado: 'Atendido' as const } : t);
-    localStorage.setItem(LOCAL_STORAGE_TICKETS_KEY, JSON.stringify(updated));
-
-    return true;
-  } catch (err) {
-    console.error('Error al actualizar la firma remota:', err);
-    return false;
+  } catch (err: any) {
+    console.error('Error en updateRemoteSignature:', err);
+    return { success: false, message: err.message || 'Error procesando la firma remota.' };
   }
 }
 
