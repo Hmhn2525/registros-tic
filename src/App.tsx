@@ -12,8 +12,7 @@ export function App() {
 
   // Detectar si el enlace fue abierto por un cliente remoto para firmar
   const urlParams = new URLSearchParams(window.location.search);
-  const ticketParam = urlParams.get('firmar_ticket');
-  const usuarioNombreParam = urlParams.get('usuario') || '';
+  const signatureToken = urlParams.get('firmar_token');
 
   useEffect(() => {
     setTicketCount(getOfflineTickets().length);
@@ -23,12 +22,11 @@ export function App() {
     setTicketCount(prev => prev + 1);
   };
 
-  // Si tiene el parámetro firmar_ticket, mostrar la vista dedicada de cliente remoto
-  if (ticketParam) {
+  // Si tiene un token de firma, mostrar la vista dedicada de cliente remoto
+  if (signatureToken) {
     return (
       <RemoteSignatureView
-        ticketParam={ticketParam}
-        usuarioNombre={usuarioNombreParam}
+        signatureToken={signatureToken}
       />
     );
   }

@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { SignatureCanvas } from './SignatureCanvas';
 import { ShieldCheck, CheckCircle2, Send, Loader2, AlertCircle } from 'lucide-react';
-import { updateRemoteSignature } from '../services/ticketService';
+import { submitRemoteSignature } from '../services/remoteSignatureService';
 
 interface RemoteSignatureViewProps {
-  ticketParam: string;
-  usuarioNombre: string;
+  signatureToken: string;
 }
 
-export const RemoteSignatureView: React.FC<RemoteSignatureViewProps> = ({ ticketParam, usuarioNombre }) => {
+export const RemoteSignatureView: React.FC<RemoteSignatureViewProps> = ({ signatureToken }) => {
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
@@ -26,16 +25,13 @@ export const RemoteSignatureView: React.FC<RemoteSignatureViewProps> = ({ ticket
     setSubmitting(true);
 
     try {
-      // Actualizar el ticket en Supabase / Local con la firma remota enviada por el cliente
-      const ok = await updateRemoteSignature(ticketParam, signatureDataUrl);
-      if (ok) {
-        setSubmitted(true);
-      } else {
-        setSubmitted(true); // Fallback exitoso para la vista
-      }
-    } catch (err: any) {
+      await submitRemoteSignature(signatureToken, signatureDataUrl);
+      setSubmitted(true);
+    } catch (err: unknown) {
       console.error('Error al enviar firma remota:', err);
-      setErrorMessage('Ocurrió un error al enviar la firma. Inténtalo de nuevo.');
+      setErrorMessage(err instanceof Error
+        ? err.message
+        : 'Ocurrió un error al enviar la firma. Inténtalo de nuevo.');
     } finally {
       setSubmitting(false);
     }
@@ -52,7 +48,7 @@ export const RemoteSignatureView: React.FC<RemoteSignatureViewProps> = ({ ticket
             ¡Firma Registrada con Éxito!
           </h2>
           <p className="text-sm text-slate-300">
-            Gracias <strong className="text-white">{usuarioNombre || 'Usuario'}</strong>. Tu firma de conformidad ha sido recibida y vinculada al reporte de soporte TIC.
+            Tu firma de conformidad ha sido recibida y vinculada al reporte de soporte TIC.
           </p>
           <div className="pt-2 text-xs text-slate-500 border-t border-slate-800">
             Puedes cerrar esta pestaña en tu navegador.
@@ -84,7 +80,7 @@ export const RemoteSignatureView: React.FC<RemoteSignatureViewProps> = ({ ticket
           
           <div className="bg-indigo-950/40 p-4 rounded-2xl border border-indigo-500/30 text-xs space-y-1">
             <span className="text-indigo-300 font-bold uppercase tracking-wider text-[10px] block">Usuario Solicitante</span>
-            <span className="text-base font-extrabold text-white block">{usuarioNombre || 'Estimado Usuario'}</span>
+            <span className="text-base font-extrabold text-white block">Estimado usuario</span>
             <p className="text-slate-300 text-[11px] pt-1">
               Por favor traza tu firma digital en la casilla inferior para confirmar la recepción conforme del servicio de soporte TIC.
             </p>

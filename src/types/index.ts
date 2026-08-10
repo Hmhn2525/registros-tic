@@ -53,4 +53,5 @@ export interface TicketFormInput {
   nombre_tecnico: string;
   notas_adicionales?: string;
   signatureDataUrl?: string;
+  firma_token_hash?: string;
 }

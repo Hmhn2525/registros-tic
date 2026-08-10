@@ -16,6 +16,11 @@ const TECNICOS_PREDEFINIDOS = [
   'Hilario Pérez Montiel'
 ];
 
+async function hashSignatureToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [categorias, setCategorias] = useState<CategoriaSoporte[]>([]);
@@ -46,6 +51,8 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
   const [modalidadFirma, setModalidadFirma] = useState<'presencial' | 'remota_link' | 'remota_pin'>('presencial');
   const [pinVerificacion, setPinVerificacion] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [remoteLink, setRemoteLink] = useState<string | null>(null);
+  const [remoteRecipientName, setRemoteRecipientName] = useState<string>('');
 
   useEffect(() => {
     async function loadFormData() {
@@ -131,7 +138,7 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
   // Resolución de Dominio Base Inteligente (Sustituye localhost por IP LAN o Dominio Vercel)
   const getBaseAppUrl = () => {
     if (import.meta.env.VITE_PUBLIC_APP_URL) {
-      return import.meta.env.VITE_PUBLIC_APP_URL;
+      return import.meta.env.VITE_PUBLIC_APP_URL.replace(/\/$/, '');
     }
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return `http://192.168.2.97:${window.location.port || '5173'}`;
@@ -141,13 +148,13 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
 
   const usuarioSeleccionadoObj = usuarios.find(u => u.id === usuarioId);
   const baseUrl = getBaseAppUrl();
-  const remoteLink = `${baseUrl}/?firmar_ticket=${Date.now()}&usuario=${encodeURIComponent(usuarioSeleccionadoObj?.nombre || '')}`;
 
   // Copiado resistente a entornos no seguros (HTTP / IP Local)
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
+    if (!remoteLink) return;
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(remoteLink);
+        await navigator.clipboard.writeText(remoteLink);
       } else {
         const textArea = document.createElement('textarea');
         textArea.value = remoteLink;
@@ -164,13 +171,15 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
   };
 
   const handleShareWhatsApp = () => {
-    const mensaje = `Hola ${usuarioSeleccionadoObj?.nombre || ''}, te compartimos el enlace para confirmar y firmar la atención de soporte TIC recibida:\n\n${remoteLink}`;
+    if (!remoteLink) return;
+    const mensaje = `Hola ${remoteRecipientName}, te compartimos el enlace para confirmar y firmar la atención de soporte TIC recibida:\n\n${remoteLink}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, '_blank');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedback(null);
+    if (modalidadFirma === 'remota_link') setRemoteLink(null);
 
     if (!usuarioId || !categoriaId || !descripcionFalla.trim()) {
       setFeedback({ type: 'error', message: 'Por favor completa los campos obligatorios marcados con (*).' });
@@ -182,7 +191,7 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
       return;
     }
 
-    let finalSignatureUrl = signatureDataUrl;
+    const finalSignatureUrl = signatureDataUrl;
 
     if (modalidadFirma === 'presencial' && !signatureDataUrl) {
       setFeedback({ type: 'error', message: 'Requerida: La firma digital de conformidad es obligatoria en atención presencial.' });
@@ -194,6 +203,17 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
       return;
     }
 
+    let signatureToken: string | undefined;
+    let signatureTokenHash: string | undefined;
+    try {
+      signatureToken = modalidadFirma === 'remota_link' ? crypto.randomUUID() : undefined;
+      signatureTokenHash = signatureToken ? await hashSignatureToken(signatureToken) : undefined;
+    } catch (error) {
+      console.error('No fue posible generar el enlace seguro:', error);
+      setFeedback({ type: 'error', message: 'No fue posible generar un enlace seguro en este navegador.' });
+      return;
+    }
+
     setSubmitting(true);
 
     const detalleActivo = activoId === 'OTRO' 
@@ -202,7 +222,7 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
 
     const notasCompletas = [
       detalleActivo,
-      modalidadFirma === 'remota_link' ? '[Firma Remota: Enlace enviado por WhatsApp]' : '',
+      modalidadFirma === 'remota_link' ? '[Firma Remota: Enlace pendiente de envío por WhatsApp]' : '',
       modalidadFirma === 'remota_pin' ? `[Firma Remota: Verificado por PIN ${pinVerificacion.trim()}]` : '',
       notasAdicionales.trim()
     ].filter(Boolean).join(' | ');
@@ -214,18 +234,34 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
       descripcion_falla: descripcionFalla.trim(),
       nombre_tecnico: nombreTecnico,
       notas_adicionales: notasCompletas,
-      signatureDataUrl: finalSignatureUrl || undefined
+      signatureDataUrl: finalSignatureUrl || undefined,
+      firma_token_hash: signatureTokenHash
     };
 
     const res = await createTicket(inputData);
     setSubmitting(false);
 
     if (res.success) {
+      if (modalidadFirma === 'remota_link' && (!res.synced || !signatureToken)) {
+        setFeedback({
+          type: 'error',
+          message: `${res.message} No se generó el enlace porque un teléfono remoto no puede acceder a un ticket local.`
+        });
+        return;
+      }
+
+      if (modalidadFirma === 'remota_link' && signatureToken) {
+        setRemoteLink(`${baseUrl}/?firmar_token=${signatureToken}`);
+        setRemoteRecipientName(usuarioSeleccionadoObj?.nombre || '');
+      }
+
       setFeedback({ 
-        type: 'success', 
+        type: res.synced ? 'success' : 'error',
         message: modalidadFirma === 'remota_link'
-          ? 'Ticket guardado en estado Pendiente. Se compartió el enlace de firma por WhatsApp al usuario.'
-          : 'Atención y evidencia guardada correctamente.'
+          ? 'Ticket creado en Supabase. El enlace seguro ya está listo para compartir por WhatsApp.'
+          : res.synced
+            ? 'Atención y evidencia guardada correctamente.'
+            : res.message
       });
       setDescripcionFalla('');
       setNotasAdicionales('');
@@ -545,33 +581,40 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess }) => {
                 </div>
               </div>
 
-              {/* Muestra el Enlace Generado */}
-              <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-mono text-indigo-300 break-all flex items-center justify-between gap-2">
-                <span className="truncate">{remoteLink}</span>
-                <a href={remoteLink} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white shrink-0">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
+              {remoteLink ? (
+                <>
+                  <div className="bg-slate-950 p-2.5 rounded-xl border border-emerald-500/30 text-xs font-mono text-indigo-300 break-all flex items-center justify-between gap-2">
+                    <span className="truncate">{remoteLink}</span>
+                    <a href={remoteLink} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white shrink-0">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleShareWhatsApp}
-                  className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow cursor-pointer"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Enviar Enlace por WhatsApp
-                </button>
+                  <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleShareWhatsApp}
+                      className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow cursor-pointer"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Enviar Enlace por WhatsApp
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 border border-slate-700 cursor-pointer"
-                >
-                  {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  {copiedLink ? '¡Enlace Copiado!' : 'Copiar Enlace'}
-                </button>
-              </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 border border-slate-700 cursor-pointer"
+                    >
+                      {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      {copiedLink ? '¡Enlace Copiado!' : 'Copiar Enlace'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                  Completa el formulario y presiona Guardar. El enlace se generará únicamente después de que Supabase confirme la creación del ticket.
+                </p>
+              )}
             </div>
           )}
 

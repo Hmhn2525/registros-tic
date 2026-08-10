@@ -55,8 +55,13 @@ CREATE TABLE IF NOT EXISTS public.tickets (
     nombre_tecnico TEXT NOT NULL,
     estado TEXT DEFAULT 'Atendido' CHECK (estado IN ('Pendiente', 'En Proceso', 'Atendido', 'Cerrado')),
     url_firma TEXT, -- URL pública de la imagen alojada en Supabase Storage
-    notas_adicionales TEXT
+    notas_adicionales TEXT,
+    firma_token_hash TEXT UNIQUE -- SHA-256 del token; el secreto nunca se guarda en la base
 );
+
+-- Migración idempotente para proyectos que ya tienen la tabla creada.
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS firma_token_hash TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS tickets_firma_token_hash_key ON public.tickets (firma_token_hash);
 
 -- 2. HABILITAR ROW LEVEL SECURITY (RLS) & POLÍTICAS COMPLETAS
 -- --------------------------------------------------------
@@ -66,20 +71,40 @@ ALTER TABLE public.activos_tic ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
 
 -- POLÍTICAS DE LECTURA (SELECT)
-CREATE POLICY "Permitir lectura publica usuarios" ON public.usuarios FOR SELECT USING (true);
-CREATE POLICY "Permitir lectura publica categorias" ON public.categorias_soporte FOR SELECT USING (true);
-CREATE POLICY "Permitir lectura publica activos" ON public.activos_tic FOR SELECT USING (true);
-CREATE POLICY "Permitir lectura publica tickets" ON public.tickets FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Permitir lectura publica usuarios" ON public.usuarios;
+DROP POLICY IF EXISTS "Permitir lectura publica categorias" ON public.categorias_soporte;
+DROP POLICY IF EXISTS "Permitir lectura publica activos" ON public.activos_tic;
+DROP POLICY IF EXISTS "Permitir lectura publica tickets" ON public.tickets;
+CREATE POLICY "Permitir lectura publica usuarios" ON public.usuarios FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Permitir lectura publica categorias" ON public.categorias_soporte FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Permitir lectura publica activos" ON public.activos_tic FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Permitir lectura publica tickets" ON public.tickets FOR SELECT TO anon, authenticated USING (true);
 
--- POLÍTICAS DE INSERCIÓN (INSERT)
-CREATE POLICY "Permitir insercion publica tickets" ON public.tickets FOR INSERT WITH CHECK (true);
-CREATE POLICY "Permitir insercion publica usuarios" ON public.usuarios FOR INSERT WITH CHECK (true);
-CREATE POLICY "Permitir insercion publica activos" ON public.activos_tic FOR INSERT WITH CHECK (true);
+-- POLÍTICA DE INSERCIÓN: la PWA puede crear tickets, pero no modificar filas existentes.
+DROP POLICY IF EXISTS "Permitir insercion publica tickets" ON public.tickets;
+CREATE POLICY "Permitir insercion publica tickets" ON public.tickets FOR INSERT TO anon, authenticated WITH CHECK (true);
 
--- POLÍTICAS DE ACTUALIZACIÓN (UPDATE) - CRÍTICAS PARA FIRMA REMOTA
-CREATE POLICY "Permitir actualizacion publica tickets" ON public.tickets FOR UPDATE USING (true) WITH CHECK (true);
-CREATE POLICY "Permitir actualizacion publica usuarios" ON public.usuarios FOR UPDATE USING (true) WITH CHECK (true);
-CREATE POLICY "Permitir actualizacion publica activos" ON public.activos_tic FOR UPDATE USING (true) WITH CHECK (true);
+-- Eliminar políticas públicas peligrosas creadas por versiones anteriores.
+-- La firma remota ahora se procesa exclusivamente en la función segura de Vercel.
+DROP POLICY IF EXISTS "Permitir actualizacion publica tickets" ON public.tickets;
+DROP POLICY IF EXISTS "Permitir actualizacion publica usuarios" ON public.usuarios;
+DROP POLICY IF EXISTS "Permitir actualizacion publica activos" ON public.activos_tic;
+DROP POLICY IF EXISTS "Permitir insercion publica usuarios" ON public.usuarios;
+DROP POLICY IF EXISTS "Permitir insercion publica activos" ON public.activos_tic;
+
+-- Permisos explícitos para proyectos con exposición automática de Data API desactivada.
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+REVOKE ALL ON public.usuarios, public.categorias_soporte, public.activos_tic, public.tickets
+FROM anon, authenticated;
+GRANT SELECT ON public.usuarios, public.categorias_soporte, public.activos_tic TO anon, authenticated;
+GRANT SELECT (
+    id, fecha_registro, usuario_id, activo_id, categoria_id,
+    descripcion_falla, nombre_tecnico, estado, url_firma, notas_adicionales
+) ON public.tickets TO anon, authenticated;
+GRANT INSERT (
+    usuario_id, activo_id, categoria_id, descripcion_falla,
+    nombre_tecnico, estado, url_firma, notas_adicionales, firma_token_hash
+) ON public.tickets TO anon, authenticated;
 
 -- 3. CREACIÓN Y CONFIGURACIÓN DEL BUCKET DE STORAGE "firmas"
 -- --------------------------------------------------------
@@ -88,6 +113,9 @@ VALUES ('firmas', 'firmas', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Políticas de Storage RLS para el Bucket "firmas"
+DROP POLICY IF EXISTS "Lectura publica de firmas" ON storage.objects;
+DROP POLICY IF EXISTS "Subida publica de firmas" ON storage.objects;
+DROP POLICY IF EXISTS "Actualizacion publica de firmas" ON storage.objects;
 CREATE POLICY "Lectura publica de firmas"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'firmas');
@@ -95,10 +123,6 @@ USING (bucket_id = 'firmas');
 CREATE POLICY "Subida publica de firmas"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'firmas');
-
-CREATE POLICY "Actualizacion publica de firmas"
-ON storage.objects FOR UPDATE
-USING (bucket_id = 'firmas');
 
 -- 4. DATOS SEMILLA (CATEGORÍAS DE SOPORTE)
 -- --------------------------------------------------------
