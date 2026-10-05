@@ -6,6 +6,8 @@ Visión general del avance, funcionalidades completadas y backlog prioritario de
 
 ## Hecho ✅
 
+- **Publicación saneada y caso de estudio (2026-10-05)** — Repositorio recreado, commit raíz nuevo conservado, README, arquitectura y capturas demo. Recorrido local verificado; no acredita integración remota ni seguridad para datos reales. Consultar `../../docs/project-status.md`.
+
 - **006 · Saneamiento local de privacidad (2026-10-02)** — Copia independiente, datos sintéticos, consolidación documentada y verificaciones locales. Consultar `../features/006-local-privacy/tasks.md` y `../../docs/project-status.md`. No implica publicación, saneamiento del historial ni operación con datos reales. El estado 001 siguiente se conserva como registro histórico.
 
 1. **001 · Captura de Firmas y PWA Base** — Desarrollo de la PWA responsiva en React + Vite + Tailwind CSS con lienzo de firma táctil (`react-signature-canvas`), guardado de imágenes en Supabase Storage, esquema PostgreSQL y guía de integración con Looker Studio.

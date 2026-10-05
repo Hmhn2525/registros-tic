@@ -1,5 +1,19 @@
 # Revisión final de privacidad y consistencia
 
+## Actualización de publicación · 2026-10-05
+
+El informe del 3 de octubre que sigue se conserva como registro histórico. Sus referencias a HEAD antiguo, índice, rutas pendientes y prohibiciones de publicación no describen el repositorio actual.
+
+La versión pública se creó desde una copia independiente con un único commit raíz saneado `732724d7cf271779d94cbc7a755c0018426a0b8f`. El repositorio anterior se eliminó y se recreó con identidad diferente; se publicó únicamente `main` mediante push normal. No se reutilizó el historial antiguo ni se publicaron materiales de auditoría o respaldo. Consultar [estado vigente](project-status.md).
+
+El respaldo privado se verificó nuevamente: 112 archivos, cero diferencias SHA-256. El escaneo de los 45 archivos del commit inicial no encontró datos sensibles propios. Las dos capturas añadidas posteriormente muestran catálogos y una atención ficticios, sin firma personal, credenciales ni PIN visible. El historial local utiliza un navegador aislado sin Supabase configurado.
+
+El nuevo remoto no anuncia ramas antiguas ni referencias de PR; PR #1 no existe y las consultas de cuatro commits previos no encuentran esos objetos. La verificación no demuestra que desaparecieran copias de terceros o todas las cachés externas.
+
+Los riesgos funcionales de permisos, firmas, PIN, tokens y cola offline permanecen. Publicar código saneado no acredita seguridad para operar con datos reales.
+
+## Informe histórico · 2026-10-03
+
 Fecha: 2026-10-03. Alcance: copia independiente local de Registros TIC. Rama `main`; HEAD `a9026bf3efe7b16bb83564ea4e90ae6c64dff161`. No se realizaron commits, cambios del índice, push ni reescritura histórica. El respaldo privado se comprobó mediante lectura de su manifiesto: 112 archivos, cero diferencias de tamaño o SHA-256.
 
 Este informe describe el estado previo al checkpoint local. Durante su preparación posterior se sustituyó el alias ilustrativo no confirmado por `app.example.invalid`; las referencias a HEAD, índice y archivos sin seguimiento de este informe son la fotografía de la revisión previa, no el estado después del commit.

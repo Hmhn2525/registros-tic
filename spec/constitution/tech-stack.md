@@ -9,11 +9,13 @@ Este documento define la arquitectura técnica, estándares de código y límite
 - **Lenguaje:** TypeScript estricto (`verbatimModuleSyntax` activo).
 - **Frontend Framework:** React 19 + Vite 8.
 - **Estilos:** Tailwind CSS v4 (Glassmorphic dark theme, paleta Slate/Indigo/Emerald).
-- **Backend & Storage:** Supabase (PostgreSQL 15+ & Supabase Storage Bucket `firmas`).
-- **Captura de Firma:** `react-signature-canvas` con método `.getTrimmedCanvas()`.
+- **Backend & Storage:** SDK de Supabase, esquema PostgreSQL y bucket `firmas`; servicio remoto y versión del servidor sin validar en esta etapa.
+- **Captura de Firma:** `react-signature-canvas` con método `.getCanvas()` en el código vigente.
 - **PWA Capabilities:** `vite-plugin-pwa` (Workbox Service Worker + Manifest v2).
 - **Iconografía:** `lucide-react`.
-- **Dashboard Externo:** Google Looker Studio (Conector PostgreSQL + Función `IMAGE()`).
+- **Reporting:** guía de integración con Google Looker Studio; sin tablero activo comprobado. Evitar firmas personales en reportes.
+
+El modo demo, el esquema existente y sus límites se describen en [arquitectura](../../docs/architecture.md). La cola local no tiene sincronización automática; el Storage público actual requiere corrección antes de usar firmas reales.
 
 ---
 

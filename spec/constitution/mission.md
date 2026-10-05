@@ -1,5 +1,13 @@
 # Misión del Proyecto
 
+## Alcance vigente · 2026-10-05
+
+El proyecto público es una demostración saneada de registro y trazabilidad de soporte TIC. El modo local, con catálogos ficticios y persistencia en navegador, está verificado. La sincronización automática, la autenticación, los permisos adecuados para datos reales y la instalación móvil siguen pendientes. La integración con Looker Studio está documentada, sin tablero activo comprobado.
+
+Los objetivos de velocidad, sincronización, almacenamiento de firmas y reporting descritos abajo son visión e historia del proyecto; no son resultados actuales medidos. No se verificó el objetivo de 45 segundos. El código usa `getCanvas()`, sin acreditar el recorte automático de firmas. Consultar [estado actual](../../docs/project-status.md) y [arquitectura](../../docs/architecture.md).
+
+## Visión original conservada
+
 La razón de ser del proyecto **PWA Registro de Soporte TIC** es garantizar la captura rápida, confiable y verificable de la evidencia de atenciones técnicas en sitio, eliminando el uso de papel o plataformas externas inflexibles.
 
 ---

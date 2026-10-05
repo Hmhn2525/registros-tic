@@ -1,56 +1,81 @@
-# React + TypeScript + Vite
+# Registros TIC
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Demostración saneada de una aplicación web para registrar atenciones de soporte técnico, relacionarlas con usuarios y activos, y consultar sus evidencias.
 
-Currently, two official plugins are available:
+**Estado:** demostración local con datos ficticios. La compilación y el recorrido local están verificados; la integración remota y la seguridad para operar con datos reales siguen pendientes.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Problema y solución
 
-## React Compiler
+El seguimiento de soporte requiere reunir la incidencia, el equipo, la persona solicitante, la atención y la conformidad del servicio. Registros TIC reúne ese recorrido en una interfaz orientada a dispositivos móviles, con catálogos relacionados, captura de firma y consulta del historial.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+El proyecto forma parte del portafolio de **Héctor Manuel Hernández Narváez**, con enfoque en digitalización de procesos, trazabilidad y organización de información para análisis. El [caso de estudio](docs/case-study.md) presenta las decisiones y la evidencia disponible, sin atribuir mejoras cuantitativas no medidas.
 
-## Expanding the Oxlint configuration
+## Funciones disponibles
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+- Selección y búsqueda de usuarios demo por nombre, identificador y departamento.
+- Selección de activos relacionados, categoría de soporte y técnico demo.
+- Registro local de tickets y consulta de evidencias persistentes en el navegador.
+- Lienzo de firma presencial y modalidades de enlace remoto o PIN.
+- Código de conexión con PostgreSQL y Storage mediante Supabase.
+- Configuración de PWA y función de servidor para recepción de firma remota.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+La presencia de código de integración no acredita un despliegue operativo. El PIN no tiene verificación independiente y el enlace remoto requiere infraestructura de servidor. La actualización del historial cada cuatro segundos no sincroniza la cola local.
+
+## Arquitectura y tecnologías
+
+React y TypeScript construyen la interfaz; Vite compila la aplicación y Tailwind CSS define sus estilos. El servicio de tickets usa `localStorage` en modo demo y el SDK de Supabase para acceso remoto. PostgreSQL modela usuarios, activos, categorías y tickets; Storage conserva imágenes en el esquema actual. Workbox y `vite-plugin-pwa` generan los recursos PWA.
+
+Consultar el [diagrama y flujo de datos](docs/architecture.md). La [guía de reporting](docs/reporting.md) describe una posible integración con Looker Studio; no se verificó un tablero activo.
+
+## Capturas de la demostración
+
+Formulario con catálogos sintéticos y descripción ficticia:
+
+![Formulario de Registros TIC con usuarios y activos demo](docs/images/formulario-demo.jpg)
+
+Historial de un ticket local, sin firma real y con PIN oculto visualmente:
+
+![Historial de un ticket ficticio guardado localmente](docs/images/historial-demo.jpg)
+
+Las etiquetas de la interfaz «Firma Digital Garantizada» y «Verificado por PIN» describen el texto actual del prototipo; no acreditan identidad, validez jurídica ni controles de seguridad implementados.
+
+## Ejecutar una demostración local
+
+Requisitos: Git, npm y Node.js 22.12 o una versión posterior compatible con Vite 8.
+
+```sh
+git clone https://github.com/Hmhn2525/registros-tic.git
+cd registros-tic
+npm ci
+npm run dev -- --host 127.0.0.1
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Para este recorrido, no crear `.env` ni configurar variables reales de Supabase. Asegurarse de que `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` tampoco estén definidas en el entorno. Abrir la dirección local que indique Vite en un perfil de navegador nuevo o aislado: una cola antigua puede contener registros ajenos a la demo.
 
-## Configuración del proyecto
+Seleccionar un usuario y activo demo, describir una atención ficticia y registrar un ejemplo. La modalidad presencial requiere un trazo ficticio; el PIN solo permite demostrar el guardado local y no debe usarse como autenticación. Consultar Evidencias y recargar para observar la persistencia. No introducir información personal ni firmas reales.
 
-1. En instalaciones nuevas usa `supabase_schema.sql`; en proyectos existentes aplica, en orden, las migraciones de `supabase/migrations`.
-2. Configura en Vercel las cuatro variables documentadas en `.env.example`.
-3. Aplica las variables a Production, Preview y Development según corresponda.
-4. Realiza un nuevo despliegue; las variables `VITE_*` se incorporan durante la compilación.
+```sh
+npm run lint
+npm run build
+npm run preview -- --host 127.0.0.1
+```
 
-La firma remota se procesa en `api/remote-signature.ts`. La clave
-`SUPABASE_SECRET_KEY` se usa exclusivamente en esa función del servidor y nunca
-debe copiarse a una variable que comience con `VITE_`, almacenarse en el navegador o
-subirse al repositorio.
+`vite dev` y `vite preview` sirven el frontend; no ejecutan `api/remote-signature.ts`.
 
-## Copia local saneada (sin publicación)
+### Base de datos de demostración opcional
 
-Usar npm y Node 22.12 o posterior compatible. Instalar con npm ci, revisar con npm run lint y compilar con npm run build.
+Usar exclusivamente una base nueva y aislada: aplicar `supabase_schema.sql` y después `supabase/seed.sql`. La semilla contiene tres usuarios, tres activos y tres tickets sintéticos, sin firmas ni tokens reales. Las migraciones son incrementales y no sustituyen al esquema inicial. La semilla SQL no se carga automáticamente en el modo local del navegador.
 
-Sin variables Supabase la interfaz usa usuarios y activos ficticios y conserva los tickets locales; no hay sincronización automática. La cola existente del navegador no se elimina: para una demostración usar un perfil de navegador nuevo o separado. No copiar credenciales del sistema real.
+`.env.example` documenta variables de ejemplo. Las variables `VITE_*` son públicas y se incorporan al frontend. `SUPABASE_SECRET_KEY` es exclusiva del servidor; nunca debe añadirse al frontend. El esquema actual tiene permisos anónimos y firmas públicas: requiere cambios antes de admitir datos reales.
 
-Para una base de demostración nueva y aislada, ejecutar supabase_schema.sql y después supabase/seed.sql mediante una conexión local/de desarrollo. Las migraciones actuales son cambios incrementales, no un esquema inicial completo. El esquema sigue teniendo permisos anónimos y firmas públicas: no usarlo con datos reales.
+## Evidencia, privacidad y pendientes
 
-La API remota requiere un entorno que ejecute api/remote-signature.ts; vite dev y vite preview solo sirven el frontend. No se verificó un despliegue remoto.
+El [estado del proyecto](docs/project-status.md) registra qué se comprobó. La [revisión de privacidad](docs/privacy-review.md) distingue la preparación histórica de la versión pública actual.
 
-Consultar docs/project-status.md, docs/reporting.md y docs/duplicate-comparison.md. El historial Git pendiente de saneamiento no debe publicarse ni exportarse junto con una demo.
+Pendientes: corregir las dos vulnerabilidades altas de dependencias transitivas detectadas el 5 de octubre de 2026; implementar autenticación y autorización restrictiva; privatizar firmas; validar PIN y enlaces en servidor; añadir vencimiento y límites; asegurar recuperación y sincronización offline; completar recursos PWA y verificar instalación móvil.
+
+No se midieron reducciones de tiempos, ahorro ni impacto operativo. El resultado verificable es una demostración reproducible con datos sintéticos y documentación de sus límites.
+
+## Licencia
+
+La licencia está pendiente de decisión. No se incluye un archivo `LICENSE` ni se atribuyen permisos de distribución adicionales.

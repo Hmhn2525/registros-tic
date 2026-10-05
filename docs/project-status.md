@@ -1,5 +1,30 @@
 # Estado del proyecto y registro histórico
 
+## Estado vigente · 2026-10-05
+
+**Demostración pública saneada; recorrido local verificado.** No se acredita operación con datos reales ni despliegue de la API.
+
+- Repositorio: [Hmhn2525/registros-tic](https://github.com/Hmhn2525/registros-tic), público y recreado con identidad nueva `R_kgDOU8zjzQ`.
+- Identidad anterior: `R_kgDOT0UgxQ`. La eliminación se confirmó mediante HTTP 404 con una sesión autenticada válida antes de crear el nuevo repositorio.
+- Checkpoint de reposición: solo `main`, sin etiquetas, un único commit raíz `732724d7cf271779d94cbc7a755c0018426a0b8f`, publicado mediante push normal.
+- PR #1: HTTP 404; lista de PR vacía; `refs/pull/1/head` y la rama anterior no aparecen en las referencias anunciadas.
+- Los cuatro SHA anteriores comprobados devolvieron HTTP 422 «No commit found». Esto acredita las consultas realizadas en el nuevo repositorio, no la eliminación de copias externas o de todas las cachés de GitHub.
+- Respaldo privado: 112 archivos comparados contra sus hashes registrados, cero diferencias; no se publicó ni modificó.
+- Escaneo inicial: 45 archivos públicos, sin coincidencias de datos sensibles del proyecto. Un contacto de dependencia se clasificó como metadato de terceros.
+- `npm ci`, `npm run lint`, `npm run build` y `git diff --check`: correctos. Build con variables públicas Supabase vacías.
+- Recorrido de navegador aislado: catálogos demo, registro ficticio por modalidad PIN, consulta del historial y persistencia tras recarga; sin conexión a Supabase ni firma real.
+- Se añaden README profesional, arquitectura, caso de estudio y capturas sintéticas mediante un commit posterior normal. El SHA inicial se conserva como raíz del historial nuevo.
+
+### Diagnóstico de dependencias
+
+`npm audit` del 5 de octubre de 2026 reportó dos dependencias transitivas con severidad alta: `brace-expansion` (versiones instaladas 2.1.4 y 5.0.9) y `fast-uri` (3.1.5). La cadena parte de `vite-plugin-pwa` y `workbox-build`; no son dependencias directas de la aplicación. npm informa corrección disponible; no se ejecutó `npm audit fix` ni se modificaron las resoluciones.
+
+### Pendientes técnicos
+
+Autenticación de técnicos, autorización restrictiva de Supabase, Storage privado, validación independiente del PIN, vencimiento y límites de enlaces remotos, validación de imágenes y concurrencia, sincronización y recuperación de cola offline, retención local e iconos PWA. La subida de firma puede fallar antes del guardado offline con Supabase configurado. API, integración de reporting e instalación móvil requieren pruebas propias.
+
+Consultar [arquitectura](architecture.md) y [caso de estudio](case-study.md). Los registros que siguen son evidencia histórica: sus prohibiciones de publicación, HEAD y pendientes de filtrado describen etapas previas.
+
 ## Revisión local de privacidad · 2026-10-02
 
 - Línea base: main, a9026bf3efe7b16bb83564ea4e90ae6c64dff161, estado limpio antes de modificar.
