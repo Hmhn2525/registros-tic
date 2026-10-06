@@ -1,47 +1,43 @@
 # Registros TIC
 
-Demostración saneada de una aplicación web para registrar atenciones de soporte técnico, relacionarlas con usuarios y activos, y consultar sus evidencias.
+Demostración saneada de aplicación web para el registro, trazabilidad de soporte técnico y consulta de evidencias.
 
-**Estado:** demostración local con datos ficticios. La compilación y el recorrido local están verificados; la integración remota y la seguridad para operar con datos reales siguen pendientes.
+> [!NOTE]
+> **Demostración local saneada.** El código de frontend y el esquema de base de datos se proporcionan con datos sintéticos y persistencia local para evaluación técnica. El entorno productivo y las credenciales operativas no forman parte de este repositorio.
 
-## Problema y solución
+[Ejecutar la demostración](#ejecutar-una-demostración-local) · [Caso de estudio](docs/case-study.md) · [Arquitectura](docs/architecture.md) · [Estado del proyecto](docs/project-status.md) · [Revisión de privacidad](docs/privacy-review.md)
 
-El seguimiento de soporte requiere reunir la incidencia, el equipo, la persona solicitante, la atención y la conformidad del servicio. Registros TIC reúne ese recorrido en una interfaz orientada a dispositivos móviles, con catálogos relacionados, captura de firma y consulta del historial.
+## Problema
 
-El proyecto forma parte del portafolio de **Héctor Manuel Hernández Narváez**, con enfoque en digitalización de procesos, trazabilidad y organización de información para análisis. El [caso de estudio](docs/case-study.md) presenta las decisiones y la evidencia disponible, sin atribuir mejoras cuantitativas no medidas.
+El seguimiento de atenciones de soporte técnico requiere reunir en un único punto la descripción de la incidencia, el equipo o activo involucrado, la persona solicitante, el técnico responsable y la conformidad final del servicio. Cuando la información se fragmenta en mensajes y notas informales, se pierde la trazabilidad operativa y se dificulta la generación de reportes periódicos de soporte.
 
-## Funciones disponibles
+## Solución
 
-- Selección y búsqueda de usuarios demo por nombre, identificador y departamento.
-- Selección de activos relacionados, categoría de soporte y técnico demo.
-- Registro local de tickets y consulta de evidencias persistentes en el navegador.
-- Lienzo de firma presencial y modalidades de enlace remoto o PIN.
-- Código de conexión con PostgreSQL y Storage mediante Supabase.
-- Configuración de PWA y función de servidor para recepción de firma remota.
-
-La presencia de código de integración no acredita un despliegue operativo. El PIN no tiene verificación independiente y el enlace remoto requiere infraestructura de servidor. La actualización del historial cada cuatro segundos no sincroniza la cola local.
-
-## Arquitectura y tecnologías
-
-React y TypeScript construyen la interfaz; Vite compila la aplicación y Tailwind CSS define sus estilos. El servicio de tickets usa `localStorage` en modo demo y el SDK de Supabase para acceso remoto. PostgreSQL modela usuarios, activos, categorías y tickets; Storage conserva imágenes en el esquema actual. Workbox y `vite-plugin-pwa` generan los recursos PWA.
-
-Consultar el [diagrama y flujo de datos](docs/architecture.md). La [guía de reporting](docs/reporting.md) describe una posible integración con Looker Studio; no se verificó un tablero activo.
+Una aplicación web diseñada para dispositivos móviles y escritorio que centraliza el flujo de atención:
+- Selección ágil mediante catálogos relacionados de solicitantes, departamentos y activos.
+- Modalidades de registro de atención y captura de conformidad (firma presencial en pantalla o PIN de verificación local).
+- Consulta histórica de evidencias y tickets registrados, persistidos en el almacenamiento local del navegador (`localStorage`) o en PostgreSQL a través de Supabase en entornos configurados.
 
 ## Capturas de la demostración
 
-Formulario con catálogos sintéticos y descripción ficticia:
+Formulario de registro con catálogos sintéticos:
 
 ![Formulario de Registros TIC con usuarios y activos demo](docs/images/formulario-demo.jpg)
 
-Historial de un ticket local, sin firma real y con PIN oculto visualmente:
+Historial de ticket registrado con PIN visualmente protegido:
 
 ![Historial de un ticket ficticio guardado localmente](docs/images/historial-demo.jpg)
 
-Las etiquetas de la interfaz «Firma Digital Garantizada» y «Verificado por PIN» describen el texto actual del prototipo; no acreditan identidad, validez jurídica ni controles de seguridad implementados.
+*Las etiquetas de la interfaz «Firma Digital Garantizada» y «Verificado por PIN» describen el texto del prototipo; no acreditan validez jurídica ni controles criptográficos de producción.*
+
+## Aportación personal
+
+<!-- APORTACION-PERSONAL: sustituir tras la confirmación agrupada de responsabilidades. -->
+Las responsabilidades personales específicas se detallarán tras la confirmación agrupada. Este repositorio documenta el caso, la arquitectura observada y el código saneado sin atribuir autoría exclusiva de cada componente de terceros.
 
 ## Ejecutar una demostración local
 
-Requisitos: Git, npm y Node.js 22.12 o una versión posterior compatible con Vite 8.
+Requisitos: Node.js 22.12 o posterior (compatible con Vite 8) y npm.
 
 ```sh
 git clone https://github.com/Hmhn2525/registros-tic.git
@@ -50,9 +46,13 @@ npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
-Para este recorrido, no crear `.env` ni configurar variables reales de Supabase. Asegurarse de que `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` tampoco estén definidas en el entorno. Abrir la dirección local que indique Vite en un perfil de navegador nuevo o aislado: una cola antigua puede contener registros ajenos a la demo.
+Para este recorrido demostrativo:
+1. No cree archivo `.env` ni configure variables reales de conexión.
+2. Abra la dirección local indicada por Vite en una ventana privada o perfil limpio del navegador.
+3. Seleccione un usuario y un activo de demostración, capture una descripción ficticia y guarde el ticket.
+4. Vaya a la sección **Evidencias** y recargue la página: observará que el registro ficticio persiste localmente.
 
-Seleccionar un usuario y activo demo, describir una atención ficticia y registrar un ejemplo. La modalidad presencial requiere un trazo ficticio; el PIN solo permite demostrar el guardado local y no debe usarse como autenticación. Consultar Evidencias y recargar para observar la persistencia. No introducir información personal ni firmas reales.
+Para validar calidad y compilación del código:
 
 ```sh
 npm run lint
@@ -60,22 +60,36 @@ npm run build
 npm run preview -- --host 127.0.0.1
 ```
 
-`vite dev` y `vite preview` sirven el frontend; no ejecutan `api/remote-signature.ts`.
+*Nota: `vite dev` y `vite preview` sirven el frontend; no ejecutan la función de servidor `api/remote-signature.ts`.*
 
 ### Base de datos de demostración opcional
 
-Usar exclusivamente una base nueva y aislada: aplicar `supabase_schema.sql` y después `supabase/seed.sql`. La semilla contiene tres usuarios, tres activos y tres tickets sintéticos, sin firmas ni tokens reales. Las migraciones son incrementales y no sustituyen al esquema inicial. La semilla SQL no se carga automáticamente en el modo local del navegador.
+Para evaluar la integración con PostgreSQL, aplique `supabase_schema.sql` y posteriormente `supabase/seed.sql` en un proyecto Supabase aislado. La semilla contiene únicamente tres usuarios, tres activos y tres tickets ficticios sin información confidencial.
 
-`.env.example` documenta variables de ejemplo. Las variables `VITE_*` son públicas y se incorporan al frontend. `SUPABASE_SECRET_KEY` es exclusiva del servidor; nunca debe añadirse al frontend. El esquema actual tiene permisos anónimos y firmas públicas: requiere cambios antes de admitir datos reales.
+## Resultados comprobados
 
-## Evidencia, privacidad y pendientes
+- **Trazabilidad y persistencia de soporte:** guardado local verificado con persistencia tras recarga del navegador en pruebas del 5 de octubre de 2026.
+- **Protección visual de credenciales:** el PIN de confirmación se enmascara visualmente en el historial.
+- **Calidad de código verificada:** comandos `npm run lint` y `npm run build` ejecutados exitosamente sin errores de compilación TypeScript.
 
-El [estado del proyecto](docs/project-status.md) registra qué se comprobó. La [revisión de privacidad](docs/privacy-review.md) distingue la preparación histórica de la versión pública actual.
+No se publican métricas cuantitativas no medidas de reducción de tiempos o adopción.
 
-Pendientes: corregir las dos vulnerabilidades altas de dependencias transitivas detectadas el 5 de octubre de 2026; implementar autenticación y autorización restrictiva; privatizar firmas; validar PIN y enlaces en servidor; añadir vencimiento y límites; asegurar recuperación y sincronización offline; completar recursos PWA y verificar instalación móvil.
+## Tecnologías verificadas
 
-No se midieron reducciones de tiempos, ahorro ni impacto operativo. El resultado verificable es una demostración reproducible con datos sintéticos y documentación de sus límites.
+| Capa | Tecnologías |
+|---|---|
+| Frontend | React, TypeScript, Vite, Tailwind CSS, Workbox, PWA |
+| Persistencia y datos | `localStorage` (modo demo), SDK de Supabase, PostgreSQL |
+| Complementarias | `react-signature-canvas`, Looker Studio (diseño de reporting documentado) |
+
+## Límites y pendientes
+
+- Se detectaron dos advertencias de vulnerabilidad alta en dependencias transitivas (`brace-expansion`, `fast-uri`) pendientes de actualizar en una fase técnica propia.
+- El modo demo utiliza almacenamiento en navegador; la sincronización offline bidireccional y la validación estricta de tokens en servidor permanecen pendientes.
+- La integración con Looker Studio está documentada en `docs/reporting.md`, sin un tablero productivo activo verificado.
+
+Detalle técnico completo: [estado del proyecto](docs/project-status.md) y [revisión de privacidad](docs/privacy-review.md).
 
 ## Licencia
 
-La licencia está pendiente de decisión. No se incluye un archivo `LICENSE` ni se atribuyen permisos de distribución adicionales.
+Pendiente de decisión expresa. No se incluye archivo `LICENSE` ni se autoriza distribución comercial no acordada.
