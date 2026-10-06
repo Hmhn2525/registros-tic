@@ -32,8 +32,7 @@ Historial de ticket registrado con PIN visualmente protegido:
 
 ## Aportación personal
 
-<!-- APORTACION-PERSONAL: sustituir tras la confirmación agrupada de responsabilidades. -->
-Las responsabilidades personales específicas se detallarán tras la confirmación agrupada. Este repositorio documenta el caso, la arquitectura observada y el código saneado sin atribuir autoría exclusiva de cada componente de terceros.
+Relevé las necesidades operativas del equipo de soporte para diseñar la interfaz móvil responsiva en React/TypeScript y modelar el esquema relacional de datos (usuarios, activos y categorías). Implementé la persistencia local en el navegador para el modo demo y la integración con el SDK de Supabase/PostgreSQL para la trazabilidad y consulta de atenciones.
 
 ## Ejecutar una demostración local
 
