@@ -24,11 +24,15 @@ El trabajo presentado comprende la aplicación de registro, su modelo relacional
 
 ## Evidencia disponible
 
-El recorrido local seleccionó catálogos demo, guardó una atención ficticia mediante la modalidad PIN, consultó el historial y recargó la aplicación. El ticket persistió; el historial mostró el PIN como `[omitido]`. No hubo conexión a Supabase ni firma personal. Las capturas se incluyen en el [README](../README.md).
+El recorrido local seleccionado en la evidencia del 5 de octubre usó catálogos demo, guardó una atención ficticia mediante la modalidad PIN, consultó el historial y recargó la aplicación. No hubo conexión a Supabase ni firma personal. El [README](../README.md) conserva referencias visuales del repositorio, sin presentarlas como evidencia nueva de este cambio.
+
+El ejemplo `examples/verify.py` muestra cinco tickets ficticios, su historial de estados y un agregado por estado final y categoría. Es un modelo independiente, no la salida de la interfaz. La aplicación permite crear y consultar tickets, pero no incluye edición de estados ni tablero de reportes.
 
 La instalación reproducible, lint y compilación pasaron. La auditoría npm detectó dos dependencias transitivas con severidad alta: `brace-expansion` y `fast-uri`, dentro de la cadena de herramientas PWA. La corrección queda para una fase técnica con revisión de compatibilidad.
 
 La función de firma remota y el esquema se revisaron por inspección. No se ejecutó una prueba completa de servidor, autorización, Storage ni instalación móvil.
+
+La [demo de creación, seguimiento e informe](../demo/index.html) amplía ese modelo en memoria y permite agregar estados sin salir del escenario ficticio. El [mockup sintético](images/mockup-synthetic.svg) visualiza la fixture; no es una captura de la UI original. El [verificador](verification.md) sigue siendo la comprobación reproducible.
 
 ## Resultado y aprendizajes
 

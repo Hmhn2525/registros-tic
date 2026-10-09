@@ -5,7 +5,9 @@ Demostración saneada de aplicación web para el registro, trazabilidad de sopor
 > [!NOTE]
 > **Demostración local saneada.** El código de frontend y el esquema de base de datos se proporcionan con datos sintéticos y persistencia local para evaluación técnica. El entorno productivo y las credenciales operativas no forman parte de este repositorio.
 
-[Ejecutar la demostración](#ejecutar-una-demostración-local) · [Caso de estudio](docs/case-study.md) · [Arquitectura](docs/architecture.md) · [Estado del proyecto](docs/project-status.md) · [Revisión de privacidad](docs/privacy-review.md)
+[Ejecutar la demostración](#ejecutar-una-demostración-local) · [Reproducir ejemplo de tickets](#reproducir-el-ejemplo-de-tickets) · [Caso de estudio](docs/case-study.md) · [Arquitectura](docs/architecture.md) · [Estado del proyecto](docs/project-status.md) · [Revisión de privacidad](docs/privacy-review.md)
+
+[Abrir modelo sintético de creación, seguimiento e informe](demo/index.html) · [Ampliar mockup sintético](docs/images/mockup-synthetic.svg) · [Verificar fixture](docs/verification.md)
 
 ## Problema
 
@@ -18,17 +20,17 @@ Una aplicación web diseñada para dispositivos móviles y escritorio que centra
 - Modalidades de registro de atención y captura de conformidad (firma presencial en pantalla o PIN de verificación local).
 - Consulta histórica de evidencias y tickets registrados, persistidos en el almacenamiento local del navegador (`localStorage`) o en PostgreSQL a través de Supabase en entornos configurados.
 
-## Capturas de la demostración
+## Material visual de referencia
 
-Formulario de registro con catálogos sintéticos:
+Formulario con catálogos de demostración:
 
-![Formulario de Registros TIC con usuarios y activos demo](docs/images/formulario-demo.jpg)
+![Referencia visual del formulario de Registros TIC](docs/images/formulario-demo.jpg)
 
-Historial de ticket registrado con PIN visualmente protegido:
+Historial de ticket de demostración:
 
-![Historial de un ticket ficticio guardado localmente](docs/images/historial-demo.jpg)
+![Referencia visual del historial de Registros TIC](docs/images/historial-demo.jpg)
 
-*Las etiquetas de la interfaz «Firma Digital Garantizada» y «Verificado por PIN» describen el texto del prototipo; no acreditan validez jurídica ni controles criptográficos de producción.*
+*Se conservan como referencias visuales del repositorio. No son evidencia nueva de esta actualización ni acreditan operación productiva. Las etiquetas «Firma Digital Garantizada» y «Verificado por PIN» no prueban validez jurídica ni controles criptográficos.*
 
 ## Aportación personal
 
@@ -64,6 +66,18 @@ npm run preview -- --host 127.0.0.1
 ### Base de datos de demostración opcional
 
 Para evaluar la integración con PostgreSQL, aplique `supabase_schema.sql` y posteriormente `supabase/seed.sql` en un proyecto Supabase aislado. La semilla contiene únicamente tres usuarios, tres activos y tres tickets ficticios sin información confidencial.
+
+## Reproducir el ejemplo de tickets
+
+Requiere Python 3 y biblioteca estándar. Desde la raíz del repositorio:
+
+```sh
+python examples/verify.py
+```
+
+El ejemplo lee un escenario JSON ficticio, muestra creación, historial de estados y un resumen por estado final y categoría para cinco tickets. No llama a la aplicación, Supabase ni Looker Studio.
+
+La aplicación actual permite crear tickets y consultar recientes. No tiene una pantalla para cambiar estados ni un tablero de reportes; el ciclo y los agregados del ejemplo son un modelo didáctico independiente. Consulte [reporting](docs/reporting.md) y [estado del proyecto](docs/project-status.md) para límites técnicos.
 
 ## Resultados comprobados
 

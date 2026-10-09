@@ -2,6 +2,10 @@
 
 Esta guía sustituye a `LOOKER_STUDIO_GUIDE.md`. Se conserva la idea técnica de conectar PostgreSQL con Looker Studio; no acredita que exista un dashboard desplegado.
 
+## Ejemplo local de resumen
+
+`python examples/verify.py` calcula un resumen reproducible desde `examples/scenario.json`: cinco tickets sintéticos, conteo por estado final y categoría, y total abierto. Esta salida de consola es un ejemplo didáctico; no proviene de PostgreSQL, Supabase, Looker Studio ni de una función de reporte de la aplicación.
+
 ## Entorno de demostración
 
 Usar una base nueva y aislada, con `supabase_schema.sql` y `supabase/seed.sql`. Todos los ejemplos, capturas y exportaciones deben utilizar datos ficticios. No conectar esta demostración a una base empresarial.

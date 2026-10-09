@@ -1,6 +1,6 @@
 # Estado del proyecto y registro histórico
 
-## Estado vigente · 2026-10-05
+## Estado de referencia · 2026-10-05
 
 **Demostración pública saneada; recorrido local verificado.** No se acredita operación con datos reales ni despliegue de la API.
 
@@ -13,7 +13,15 @@
 - Escaneo inicial: 45 archivos públicos, sin coincidencias de datos sensibles del proyecto. Un contacto de dependencia se clasificó como metadato de terceros.
 - `npm ci`, `npm run lint`, `npm run build` y `git diff --check`: correctos. Build con variables públicas Supabase vacías.
 - Recorrido de navegador aislado: catálogos demo, registro ficticio por modalidad PIN, consulta del historial y persistencia tras recarga; sin conexión a Supabase ni firma real.
-- Se añaden README profesional, arquitectura, caso de estudio y capturas sintéticas mediante un commit posterior normal. El SHA inicial se conserva como raíz del historial nuevo.
+- Se añadieron README profesional, arquitectura, caso de estudio y material visual sintético mediante un commit posterior normal. El SHA inicial se conserva como raíz del historial nuevo.
+
+## Ejemplo de tickets agregado · 2026-10-09
+
+El ejemplo independiente `examples/verify.py` presenta creación, seguimiento y resumen de cinco tickets ficticios. Calcula conteos por estado final y categoría desde un archivo JSON. No prueba la interfaz, la API, Supabase ni Looker Studio.
+
+La aplicación publicada crea tickets y consulta registros recientes. No ofrece cambios de estado ni tablero de reportes. La cola `localStorage` no tiene sincronización automática; las limitaciones de autenticación, autorización, firmas y reporting siguen vigentes.
+
+La captura de una interfaz nueva queda pendiente porque no se pudo abrir la demo local en el navegador de revisión. Las imágenes existentes se mantienen como referencias visuales, sin presentarlas como evidencia nueva.
 
 ### Diagnóstico de dependencias
 
